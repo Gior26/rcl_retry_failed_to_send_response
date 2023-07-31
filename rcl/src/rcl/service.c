@@ -306,15 +306,18 @@ rcl_send_response(
   RCL_CHECK_ARGUMENT_FOR_NULL(request_header, RCL_RET_INVALID_ARGUMENT);
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_response, RCL_RET_INVALID_ARGUMENT);
   const rcl_service_options_t * options = rcl_service_get_options(service);
+  char error_string[100];
   RCL_CHECK_FOR_NULL_WITH_MSG(options, "Failed to get service options", return RCL_RET_ERROR);
 
-  if (rmw_send_response(
-      service->impl->rmw_handle, request_header, ros_response) != RMW_RET_OK)
-  {
-    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-    return RCL_RET_ERROR;
-  }
-  return RCL_RET_OK;
+  do{
+    if(rmw_send_response(
+         service->impl->rmw_handle, request_header, ros_response) == RMW_RET_OK){
+        return RCL_RET_OK;
+    }
+	strcpy(error_string, rmw_get_error_string().str);
+	RCL_SET_ERROR_MSG(error_string);
+  } while (strcmp(error_string, "failed to send response"));
+  return RCL_RET_ERROR;
 }
 
 bool
